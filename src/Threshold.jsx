@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Bar } from "react-chartjs-2";
 import a1Logo from "./assets/images/a1.png";
-import { saveAs } from "file-saver"; // You'll need to install this package
-import {useLocation } from "react-router-dom"; // Import use
+import { useLocation } from "react-router-dom"; // Import use
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 import {
   Chart as ChartJS,
@@ -28,7 +29,6 @@ export default function ThresholdPanel() {
   const [isUploaded, setIsUploaded] = useState(false);
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
-  const [isDarkMode] = useState(true);
   const [uploadedImage, setUploadedImage] = useState(null);
   const [ThresholdedImage, setThresholdedImage] = useState(null);
   const [modifiedHistogramData, setModifiedHistogramData] = useState(
@@ -45,9 +45,9 @@ export default function ThresholdPanel() {
       reader.onloadend = () => {
         setUploadedImage(reader.result);
         setIsUploaded(true);
-        setThresholdedImage(null); 
-        setModifiedHistogramData(Array(256).fill(0)); 
-        calculateOriginalHistogram(reader.result); 
+        setThresholdedImage(null);
+        setModifiedHistogramData(Array(256).fill(0));
+        calculateOriginalHistogram(reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -77,17 +77,24 @@ export default function ThresholdPanel() {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
 
-      // Create a new histogram array for the original image
-      const newOriginalHistogram = Array(256).fill(0);
+      // Create new histogram arrays for each color channel
+      const redHistogram = Array(256).fill(0);
+      const greenHistogram = Array(256).fill(0);
+      const blueHistogram = Array(256).fill(0);
 
-      // Calculate histogram
+      // Calculate histograms for each color channel
       for (let i = 0; i < data.length; i += 4) {
-        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3; // Calculate average for RGB
-        newOriginalHistogram[Math.floor(avg)]++; // Increment histogram for the average value
+        redHistogram[data[i]]++; // Red channel
+        greenHistogram[data[i + 1]]++; // Green channel
+        blueHistogram[data[i + 2]]++; // Blue channel
       }
 
-      // Update original histogram data
-      setOriginalHistogramData(newOriginalHistogram);
+      // Update original histogram data with individual RGB histograms
+      setOriginalHistogramData({
+        red: redHistogram,
+        green: greenHistogram,
+        blue: blueHistogram,
+      });
     };
   };
 
@@ -107,29 +114,37 @@ export default function ThresholdPanel() {
         const data = imageData.data;
         const threshold = sliderValue;
 
-        // Create a new histogram array
-        const newHistogram = Array(256).fill(0);
+        // Create histograms for each color channel
+        const redHistogram = Array(256).fill(0);
+        const greenHistogram = Array(256).fill(0);
+        const blueHistogram = Array(256).fill(0);
 
-        // Apply thresholding and calculate histogram
+        // Apply thresholding and calculate RGB histograms
         for (let i = 0; i < data.length; i += 4) {
-          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3; // Calculate average for RGB
-          const value = avg >= threshold ? 255 : 0; // Set to white or black based on threshold
+          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+          const value = avg >= threshold ? 255 : 0;
 
           // Update pixel values after thresholding
           data[i] = value; // Red
           data[i + 1] = value; // Green
           data[i + 2] = value; // Blue
 
-          // Increment histogram based on thresholded value (0 or 255)
-          newHistogram[value === 255 ? 255 : 0]++; // Increment the histogram for black or white
+          // Increment histogram based on thresholded values
+          redHistogram[data[i]]++;
+          greenHistogram[data[i + 1]]++;
+          blueHistogram[data[i + 2]]++;
         }
 
         // Update the canvas with the thresholded image
         ctx.putImageData(imageData, 0, 0);
         setThresholdedImage(canvas.toDataURL());
 
-        // Update histogram data
-        setModifiedHistogramData(newHistogram);
+        // Update histogram data for each channel
+        setModifiedHistogramData({
+          red: redHistogram,
+          green: greenHistogram,
+          blue: blueHistogram,
+        });
       };
     }
   };
@@ -138,7 +153,7 @@ export default function ThresholdPanel() {
     setUploadedImage(null);
     setIsUploaded(false);
     setSliderValue(0);
-    setThresholdedImage(null); 
+    setThresholdedImage(null);
     setModifiedHistogramData(Array(256).fill(0)); // Reset histogram
     setOriginalHistogramData(Array(256).fill(0));
   };
@@ -148,9 +163,23 @@ export default function ThresholdPanel() {
     labels: Array.from({ length: 256 }, (_, i) => i), // Labels for 0-255
     datasets: [
       {
-        label: "Original Histogram",
-        data: originalHistogramData,
-        backgroundColor: "rgba(54, 162, 235, 0.6)", // Different color for original histogram
+        label: "Red Histogram",
+        data: originalHistogramData.red,
+        backgroundColor: "rgba(255, 99, 132, 0.6)", // Red color
+        borderColor: "rgba(255, 99, 132, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Green Histogram",
+        data: originalHistogramData.green,
+        backgroundColor: "rgba(75, 192, 192, 0.6)", // Green color
+        borderColor: "rgba(75, 192, 192, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Blue Histogram",
+        data: originalHistogramData.blue,
+        backgroundColor: "rgba(54, 162, 235, 0.6)", // Blue color
         borderColor: "rgba(54, 162, 235, 1)",
         borderWidth: 1,
       },
@@ -161,10 +190,24 @@ export default function ThresholdPanel() {
     labels: Array.from({ length: 256 }, (_, i) => i), // Labels for 0-255
     datasets: [
       {
-        label: "Modified Histogram",
-        data: modifiedHistogramData,
-        backgroundColor: "rgba(255, 99, 132, 0.6)",
+        label: "Red Histogram",
+        data: modifiedHistogramData.red,
+        backgroundColor: "rgba(255, 99, 132, 0.6)", // Red color
         borderColor: "rgba(255, 99, 132, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Green Histogram",
+        data: modifiedHistogramData.green,
+        backgroundColor: "rgba(75, 192, 192, 0.6)", // Green color
+        borderColor: "rgba(75, 192, 192, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Blue Histogram",
+        data: modifiedHistogramData.blue,
+        backgroundColor: "rgba(54, 162, 235, 0.6)", // Blue color
+        borderColor: "rgba(54, 162, 235, 1)",
         borderWidth: 1,
       },
     ],
@@ -272,7 +315,8 @@ export default function ThresholdPanel() {
                     </h2>
                     {ThresholdedImage ? (
                       <img
-                        src={ThresholdedImage} classNames
+                        src={ThresholdedImage}
+                        classNames
                         alt="Uploaded"
                         className="h-[88vh] w-full object-contain mx-auto rounded-xl border-2 border-gray-600" // Menambahkan border
                       />
@@ -329,9 +373,12 @@ export default function ThresholdPanel() {
                             link.download = "edited_image.png"; // Nama file yang akan di-download
                             link.click();
                           } else {
-                            alert(
-                              "Belum ada gambar yang di-edit untuk diunduh."
-                            );
+                            Swal.fire({
+                              title: 'Error!',
+                              text: 'Belum ada gambar yang di-edit untuk diunduh',
+                              icon: 'error',
+                              confirmButtonText: 'Ok'
+                            })
                           }
                         }}
                         data-tooltip-target="tooltip-download"
@@ -433,4 +480,5 @@ export default function ThresholdPanel() {
       </div>
     </div>
   );
+  
 }

@@ -1,12 +1,17 @@
 import { useState } from "react";
 import a1Card from "./assets/images/card.jpg";
+import a1Logo from "./assets/images/a1.png";
 import a2Card from "./assets/images/a2.jpg";
 import a3Card from "./assets/images/a3.jpg";
 import a4Card from "./assets/images/a4.jpg";
 import a5Card from "./assets/images/a5.jpg";
 import a6Card from "./assets/images/a6.jpg";
-import a1Logo from "./assets/images/a1.png";
+import a7Card from "./assets/images/a7.jpg";
+import a8Card from "./assets/images/a8.jpg";
+import a9Card from "./assets/images/a9.jpg";
 import { Link } from "react-router-dom";
+import Swal from 'sweetalert2/dist/sweetalert2.js'
+import 'sweetalert2/src/sweetalert2.scss'
 
 export default function NewPage() {
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -17,14 +22,14 @@ export default function NewPage() {
 
   return (
     <div className={`${isDarkMode ? "dark" : ""}`}>
-      <div className="bg-gray-100 dark:bg-gray-900 h-screen flex justify-between">
+      <div className="bg-gray-100 dark:bg-gray-900 h-screen flex">
         {/* Sidebar */}
-        <div className="flex flex-col items-start bg-white dark:bg-gray-800 rounded-r-lg shadow-lg p-2 space-y-5 w-18">
+        <div className="flex flex-col items-start bg-white dark:bg-gray-800 rounded-r-lg shadow-lg p-2 space-y-5 w-18 fixed h-full">
           <div className="flex items-center justify-center rounded-md bg-white-600 p-4 text-white transition-all">
             <img src={a1Logo} alt="Logo" className="h-8 w-8" />
           </div>
 
-          <div className="flex flex-col items-start space-y-8 w-full h-screen">
+          <div className="flex flex-col items-start space-y-8 w-full h-full">
             <ul className="flex flex-col space-y-6 w-full flex-grow">
               {/* Icons */}
               <li className="p-5 rounded-md hover:bg-blue-100 dark:hover:bg-gray-700 transition-all cursor-pointer flex items-center w-full">
@@ -71,8 +76,8 @@ export default function NewPage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex items-center justify-center px-8 py-4 flex-col">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+        <div className="flex-1 flex items-center justify-center px-8 py-4 ml-20">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full h-full overflow-y-auto">
             {/* Card 1 */}
             <Link
               to="/threshold"
@@ -188,18 +193,18 @@ export default function NewPage() {
             </Link>
 
             {/* Card 6 */}
-            <a
-              href="#"
-              className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow h-full md:max-w-full hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+            <Link
+              to="/smoothing"
+              className="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow h-full md:max-w-full hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               <img
                 className="object-cover w-full h-48 md:h-64 rounded-t-lg"
                 src={a6Card}
-                alt="Card 6"
+                alt="Card 1"
               />
               <div className="flex flex-col justify-between p-4 leading-normal">
                 <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                  Smoothing
+                Smoothing
                 </h5>
                 <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
                   Haluskan gambar untuk mengurangi noise dan memberikan tampilan
@@ -208,7 +213,74 @@ export default function NewPage() {
                   dan menarik.
                 </p>
               </div>
-            </a>
+            </Link>
+
+            {/* Card 7 */}
+            <Link
+              to="/blur"
+              className="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow h-full md:max-w-full hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <img
+                className="object-cover w-full h-48 md:h-64 rounded-t-lg"
+                src={a7Card}
+                alt="Card 1"
+              />
+              <div className="flex flex-col justify-between p-4 leading-normal">
+                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                Blur
+                </h5>
+                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                Terapkan efek blur untuk melembutkan gambar, mengurangi ketajaman dan detail. 
+                Fitur ini berguna untuk menciptakan tampilan yang lebih halus dan lembut atau 
+                menyoroti bagian tertentu dari gambar.
+                </p>
+              </div>
+            </Link>
+
+            {/* Card 8 */}
+            <Link
+              to="/noise"
+              className="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow h-full md:max-w-full hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <img
+                className="object-cover w-full h-48 md:h-64 rounded-t-lg"
+                src={a8Card}
+                alt="Card 1"
+              />
+              <div className="flex flex-col justify-between p-4 leading-normal">
+                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                Noise 
+                </h5>
+                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                Tambahkan noise ke gambar untuk menciptakan efek visual unik atau menambahkan tekstur realistis. 
+                Fitur ini ideal untuk simulasi gambar yang diambil dalam kondisi pencahayaan rendah atau menambahkan 
+                karakteristik noise digital untuk keperluan estetika atau pelatihan model visual.
+                </p>
+              </div>
+            </Link>
+
+            {/* Card 9 */}
+            <Link
+              to="/compres"
+              className="flex flex-col items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow h-full md:max-w-full hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <img
+                className="object-cover w-full h-48 md:h-64 rounded-t-lg"
+                src={a9Card}
+                alt="Card 1"
+              />
+              <div className="flex flex-col justify-between p-4 leading-normal">
+                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                Compress
+                </h5>
+                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                Kurangi ukuran file gambar tanpa mengurangi kualitas. Fitur ini sangat cocok 
+                untuk mengoptimalkan gambar di web, menghemat ruang penyimpanan, 
+                dan memastikan waktu pemuatan yang lebih cepat.
+                </p>
+              </div>
+            </Link>
+            
           </div>
         </div>
       </div>

@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Bar } from "react-chartjs-2";
 import a1Logo from "./assets/images/a1.png";
-import { saveAs } from "file-saver"; // You'll need to install this package
-import { useLocation } from "react-router-dom"; // Import use
+import { useLocation } from "react-router-dom";
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
+
 
 import {
   Chart as ChartJS,
@@ -14,7 +16,6 @@ import {
   Legend,
 } from "chart.js";
 
-// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -29,7 +30,6 @@ export default function BrightnessPanel() {
   const [isUploaded, setIsUploaded] = useState(false);
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
-  const [isDarkMode] = useState(true);
   const [uploadedImage, setUploadedImage] = useState(null);
   const [brightnessedImage, setBrightnessImage] = useState(null);
   const [modifiedHistogramData, setModifiedHistogramData] = useState(
@@ -46,9 +46,9 @@ export default function BrightnessPanel() {
       reader.onloadend = () => {
         setUploadedImage(reader.result);
         setIsUploaded(true);
-        setBrightnessImage(null); 
-        setModifiedHistogramData(Array(256).fill(0)); 
-        calculateOriginalHistogram(reader.result); 
+        setBrightnessImage(null);
+        setModifiedHistogramData(Array(256).fill(0));
+        calculateOriginalHistogram(reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -78,17 +78,24 @@ export default function BrightnessPanel() {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
 
-      // Create a new histogram array for the original image
-      const newOriginalHistogram = Array(256).fill(0);
+      // Create new histogram arrays for each color channel
+      const redHistogram = Array(256).fill(0);
+      const greenHistogram = Array(256).fill(0);
+      const blueHistogram = Array(256).fill(0);
 
-      // Calculate histogram
+      // Calculate histograms for each color channel
       for (let i = 0; i < data.length; i += 4) {
-        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3; // Calculate average for RGB
-        newOriginalHistogram[Math.floor(avg)]++; // Increment histogram for the average value
+        redHistogram[data[i]]++; // Red channel
+        greenHistogram[data[i + 1]]++; // Green channel
+        blueHistogram[data[i + 2]]++; // Blue channel
       }
 
-      // Update original histogram data
-      setOriginalHistogramData(newOriginalHistogram);
+      // Update original histogram data with individual RGB histograms
+      setOriginalHistogramData({
+        red: redHistogram,
+        green: greenHistogram,
+        blue: blueHistogram,
+      });
     };
   };
 
@@ -96,57 +103,66 @@ export default function BrightnessPanel() {
     if (uploadedImage) {
       const image = new Image();
       image.src = uploadedImage;
-  
+
       image.onload = () => {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
         canvas.width = image.width;
         canvas.height = image.height;
         ctx.drawImage(image, 0, 0);
-  
+
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
-  
-        const newHistogram = Array(256).fill(0);
-  
-        // b adalah nilai dari slider, yang bisa negatif untuk penggelapan
-        const b = sliderValue; // sliderValue adalah konstanta yang didapat dari slider
-  
+
+        // Create histograms for each color channel
+        const redHistogram = Array(256).fill(0);
+        const greenHistogram = Array(256).fill(0);
+        const blueHistogram = Array(256).fill(0);
+
+        // `b` is the brightness adjustment value from the slider
+        const brightnessAdjustment = sliderValue;
+
+        // Adjust brightness and calculate histograms for each channel
         for (let i = 0; i < data.length; i += 4) {
           let r = data[i]; // Red
           let g = data[i + 1]; // Green
           let b = data[i + 2]; // Blue
-  
-          // Perbaikan kecerahan (penambahan atau pengurangan dengan sliderValue)
-          r = Math.min(Math.max(r + sliderValue, 0), 255); // Operasi clipping untuk R
-          g = Math.min(Math.max(g + sliderValue, 0), 255); // Operasi clipping untuk G
-          b = Math.min(Math.max(b + sliderValue, 0), 255); // Operasi clipping untuk B
-  
-          // Set nilai pixel yang sudah disesuaikan
+
+          // Adjust brightness for each color channel with clipping
+          r = Math.min(Math.max(r + brightnessAdjustment, 0), 255);
+          g = Math.min(Math.max(g + brightnessAdjustment, 0), 255);
+          b = Math.min(Math.max(b + brightnessAdjustment, 0), 255);
+
+          // Set the adjusted pixel values
           data[i] = r;
           data[i + 1] = g;
           data[i + 2] = b;
-  
-          // Update histogram
-          const adjustedGray = Math.round(0.299 * r + 0.587 * g + 0.144 * b);
-          newHistogram[adjustedGray]++;
+
+          // Update histograms for each channel based on adjusted values
+          redHistogram[r]++;
+          greenHistogram[g]++;
+          blueHistogram[b]++;
         }
-  
+
+        // Update the canvas with the adjusted image
         ctx.putImageData(imageData, 0, 0);
         setBrightnessImage(canvas.toDataURL());
-  
-        // Update histogram data
-        setModifiedHistogramData(newHistogram);
+
+        // Update histogram data with individual RGB histograms
+        setModifiedHistogramData({
+          red: redHistogram,
+          green: greenHistogram,
+          blue: blueHistogram,
+        });
       };
     }
   };
-  
 
   const handleUploadAgain = () => {
     setUploadedImage(null);
     setIsUploaded(false);
     setSliderValue(0);
-    setBrightnessImage(null); 
+    setBrightnessImage(null);
     setModifiedHistogramData(Array(256).fill(0)); // Reset histogram
     setOriginalHistogramData(Array(256).fill(0));
   };
@@ -156,9 +172,23 @@ export default function BrightnessPanel() {
     labels: Array.from({ length: 256 }, (_, i) => i), // Labels for 0-255
     datasets: [
       {
-        label: "Original Histogram",
-        data: originalHistogramData,
-        backgroundColor: "rgba(54, 162, 235, 0.6)", // Different color for original histogram
+        label: "Red Histogram",
+        data: originalHistogramData.red,
+        backgroundColor: "rgba(255, 99, 132, 0.6)", // Red color
+        borderColor: "rgba(255, 99, 132, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Green Histogram",
+        data: originalHistogramData.green,
+        backgroundColor: "rgba(75, 192, 192, 0.6)", // Green color
+        borderColor: "rgba(75, 192, 192, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Blue Histogram",
+        data: originalHistogramData.blue,
+        backgroundColor: "rgba(54, 162, 235, 0.6)", // Blue color
         borderColor: "rgba(54, 162, 235, 1)",
         borderWidth: 1,
       },
@@ -169,10 +199,24 @@ export default function BrightnessPanel() {
     labels: Array.from({ length: 256 }, (_, i) => i), // Labels for 0-255
     datasets: [
       {
-        label: "Modified Histogram",
-        data: modifiedHistogramData,
-        backgroundColor: "rgba(255, 99, 132, 0.6)",
+        label: "Red Histogram",
+        data: modifiedHistogramData.red,
+        backgroundColor: "rgba(255, 99, 132, 0.6)", // Red color
         borderColor: "rgba(255, 99, 132, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Green Histogram",
+        data: modifiedHistogramData.green,
+        backgroundColor: "rgba(75, 192, 192, 0.6)", // Green color
+        borderColor: "rgba(75, 192, 192, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Blue Histogram",
+        data: modifiedHistogramData.blue,
+        backgroundColor: "rgba(54, 162, 235, 0.6)", // Blue color
+        borderColor: "rgba(54, 162, 235, 1)",
         borderWidth: 1,
       },
     ],
@@ -280,7 +324,8 @@ export default function BrightnessPanel() {
                     </h2>
                     {brightnessedImage ? (
                       <img
-                        src={brightnessedImage} classNames
+                        src={brightnessedImage}
+                        classNames
                         alt="Uploaded"
                         className="h-[88vh] w-full object-contain mx-auto rounded-xl border-2 border-gray-600" // Menambahkan border
                       />
@@ -331,15 +376,17 @@ export default function BrightnessPanel() {
                         type="button"
                         onClick={() => {
                           if (brightnessedImage) {
-                            // Membuat elemen link untuk mendownload gambar
                             const link = document.createElement("a");
-                            link.href = brightnessedImage; // URL atau base64 image dari hasil edit
-                            link.download = "edited_image.png"; // Nama file yang akan di-download
+                            link.href = brightnessedImage;
+                            link.download = "edited_image.png";
                             link.click();
                           } else {
-                            alert(
-                              "Belum ada gambar yang di-edit untuk diunduh."
-                            );
+                            Swal.fire({
+                              title: 'Error!',
+                              text: 'Belum ada gambar yang di-edit untuk diunduh',
+                              icon: 'error',
+                              confirmButtonText: 'Ok'
+                            })
                           }
                         }}
                         data-tooltip-target="tooltip-download"

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Bar } from "react-chartjs-2";
 import a1Logo from "./assets/images/a1.png";
 import { useLocation } from "react-router-dom"; // Import use
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 import {
   Chart as ChartJS,
@@ -71,17 +73,24 @@ export default function EqualizationPanel() {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
 
-      // Create a new histogram array for the original image
-      const newOriginalHistogram = Array(256).fill(0);
+      // Create new histogram arrays for each color channel
+      const redHistogram = Array(256).fill(0);
+      const greenHistogram = Array(256).fill(0);
+      const blueHistogram = Array(256).fill(0);
 
-      // Calculate histogram
+      // Calculate histograms for each color channel
       for (let i = 0; i < data.length; i += 4) {
-        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3; // Calculate average for RGB
-        newOriginalHistogram[Math.floor(avg)]++; // Increment histogram for the average value
+        redHistogram[data[i]]++; // Red channel
+        greenHistogram[data[i + 1]]++; // Green channel
+        blueHistogram[data[i + 2]]++; // Blue channel
       }
 
-      // Update original histogram data
-      setOriginalHistogramData(newOriginalHistogram);
+      // Update original histogram data with individual RGB histograms
+      setOriginalHistogramData({
+        red: redHistogram,
+        green: greenHistogram,
+        blue: blueHistogram,
+      });
     };
   };
 
@@ -142,7 +151,9 @@ export default function EqualizationPanel() {
         };
   
         const histogram = Array(256).fill(0);
-        const newHistogram = Array(256).fill(0);
+        const redHistogram = Array(256).fill(0);
+        const greenHistogram = Array(256).fill(0);
+        const blueHistogram = Array(256).fill(0);
   
         // Step 2: Hitung histogram berdasarkan Value (V)
         const values = [];
@@ -188,20 +199,25 @@ export default function EqualizationPanel() {
           data[i + 1] = newG;
           data[i + 2] = newB;
   
-          newHistogram[Math.round(newV * 255)]++;
+          // Update histograms for each RGB channel
+          redHistogram[newR]++;
+          greenHistogram[newG]++;
+          blueHistogram[newB]++;
         }
   
         // Step 5: Update gambar dan histogram
         ctx.putImageData(imageData, 0, 0);
         setEqualizationImage(canvas.toDataURL());
   
-        // Update histogram data (jika diperlukan)
-        setModifiedHistogramData(newHistogram);
+        // Update histogram data with individual RGB histograms
+        setModifiedHistogramData({
+          red: redHistogram,
+          green: greenHistogram,
+          blue: blueHistogram,
+        });
       };
     }
   };
-  
-  
   
   
 
@@ -218,9 +234,23 @@ export default function EqualizationPanel() {
     labels: Array.from({ length: 256 }, (_, i) => i), // Labels for 0-255
     datasets: [
       {
-        label: "Original Histogram",
-        data: originalHistogramData,
-        backgroundColor: "rgba(54, 162, 235, 0.6)", // Different color for original histogram
+        label: "Red Histogram",
+        data: originalHistogramData.red,
+        backgroundColor: "rgba(255, 99, 132, 0.6)", // Red color
+        borderColor: "rgba(255, 99, 132, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Green Histogram",
+        data: originalHistogramData.green,
+        backgroundColor: "rgba(75, 192, 192, 0.6)", // Green color
+        borderColor: "rgba(75, 192, 192, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Blue Histogram",
+        data: originalHistogramData.blue,
+        backgroundColor: "rgba(54, 162, 235, 0.6)", // Blue color
         borderColor: "rgba(54, 162, 235, 1)",
         borderWidth: 1,
       },
@@ -231,10 +261,24 @@ export default function EqualizationPanel() {
     labels: Array.from({ length: 256 }, (_, i) => i), // Labels for 0-255
     datasets: [
       {
-        label: "Modified Histogram",
-        data: modifiedHistogramData,
-        backgroundColor: "rgba(255, 99, 132, 0.6)",
+        label: "Red Histogram",
+        data: modifiedHistogramData.red,
+        backgroundColor: "rgba(255, 99, 132, 0.6)", // Red color
         borderColor: "rgba(255, 99, 132, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Green Histogram",
+        data: modifiedHistogramData.green,
+        backgroundColor: "rgba(75, 192, 192, 0.6)", // Green color
+        borderColor: "rgba(75, 192, 192, 1)",
+        borderWidth: 1,
+      },
+      {
+        label: "Blue Histogram",
+        data: modifiedHistogramData.blue,
+        backgroundColor: "rgba(54, 162, 235, 0.6)", // Blue color
+        borderColor: "rgba(54, 162, 235, 1)",
         borderWidth: 1,
       },
     ],
@@ -399,9 +443,12 @@ export default function EqualizationPanel() {
                             link.download = "edited_image.png"; // Nama file yang akan di-download
                             link.click();
                           } else {
-                            alert(
-                              "Belum ada gambar yang di-edit untuk diunduh."
-                            );
+                            Swal.fire({
+                              title: 'Error!',
+                              text: 'Belum ada gambar yang di-edit untuk diunduh',
+                              icon: 'error',
+                              confirmButtonText: 'Ok'
+                            })
                           }
                         }}
                         data-tooltip-target="tooltip-download"
